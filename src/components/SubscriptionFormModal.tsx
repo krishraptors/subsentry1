@@ -9,12 +9,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SubscriptionFormModalProps {
   trigger?: React.ReactNode;
+  onSuccess?: () => void;
 }
 
-export function SubscriptionFormModal({ trigger }: SubscriptionFormModalProps) {
+export function SubscriptionFormModal({ trigger, onSuccess }: SubscriptionFormModalProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [cost, setCost] = useState("");
@@ -22,11 +25,43 @@ export function SubscriptionFormModal({ trigger }: SubscriptionFormModalProps) {
   const [renewalDate, setRenewalDate] = useState<Date>();
   const [category, setCategory] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ name, cost, billingCycle, renewalDate, category });
-    // TODO: Add API call to save subscription
-    setOpen(false);
+    
+    if (!renewalDate) {
+      toast.error("Please select a renewal date");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
+    const { error } = await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      name,
+      cost: parseFloat(cost),
+      billing_cycle: billingCycle,
+      renewal_date: format(renewalDate, "yyyy-MM-dd"),
+      category,
+    });
+
+    if (error) {
+      toast.error("Failed to add subscription");
+      console.error(error);
+    } else {
+      toast.success("Subscription added successfully!");
+      setOpen(false);
+      setName("");
+      setCost("");
+      setBillingCycle("");
+      setRenewalDate(undefined);
+      setCategory("");
+      if (onSuccess) onSuccess();
+    }
   };
 
   return (
