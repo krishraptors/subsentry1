@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calendar, CreditCard } from "lucide-react";
+import { AIAnalytics } from "@/components/AIAnalytics";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -63,6 +64,8 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your subscriptions</p>
       </div>
+
+      <AIAnalytics />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
