@@ -34,6 +34,11 @@
     --sidebar-accent-foreground: 220 15% 15%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 174 70% 55%;
+    
+    /* Gradient colors */
+    --gradient-start: 174 70% 55%;
+    --gradient-end: 200 80% 50%;
+    --glow-primary: 174 70% 55%;
   }
 
   .dark {
@@ -64,6 +69,11 @@
     --sidebar-accent-foreground: 220 15% 95%;
     --sidebar-border: 220 13% 20%;
     --sidebar-ring: 174 70% 55%;
+    
+    /* Gradient colors */
+    --gradient-start: 174 70% 55%;
+    --gradient-end: 200 80% 50%;
+    --glow-primary: 174 70% 55%;
   }
 }
 
@@ -73,5 +83,30 @@
   }
   body {
     @apply bg-background text-foreground font-['Inter',sans-serif];
+  }
+}
+
+@layer utilities {
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+  }
+  
+  .glow-effect {
+    box-shadow: 0 0 40px hsl(var(--glow-primary) / 0.3);
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
   }
 }
