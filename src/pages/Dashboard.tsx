@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calendar, CreditCard } from "lucide-react";
 import { AIAnalytics } from "@/components/AIAnalytics";
-
+import { AIRecommendations } from "@/components/AIRecommendations";
 export default function Dashboard() {
   const [stats, setStats] = useState({
     totalMonthly: 0,
@@ -66,6 +66,8 @@ export default function Dashboard() {
       </div>
 
       <AIAnalytics />
+
+      <AIRecommendations />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
