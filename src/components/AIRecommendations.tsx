@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, ExternalLink, TrendingUp, Zap, Star } from "lucide-react";
+import { Sparkles, Loader2, TrendingUp, Zap, Star, Bookmark, X, Check } from "lucide-react";
 
 interface Recommendation {
   name: string;
@@ -14,10 +14,63 @@ interface Recommendation {
   relevance: "high" | "medium" | "low";
 }
 
+interface Interaction {
+  recommendation_name: string;
+  action: 'saved' | 'dismissed';
+}
+
 export function AIRecommendations() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchInteractions();
+  }, []);
+
+  const fetchInteractions = async () => {
+    const { data } = await supabase
+      .from('recommendation_interactions')
+      .select('recommendation_name, action');
+    if (data) {
+      setInteractions(data as Interaction[]);
+    }
+  };
+
+  const handleInteraction = async (rec: Recommendation, action: 'saved' | 'dismissed') => {
+    setSavingId(rec.name);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Error", description: "Please sign in first", variant: "destructive" });
+      setSavingId(null);
+      return;
+    }
+
+    const { error } = await supabase.from('recommendation_interactions').insert({
+      user_id: user.id,
+      recommendation_name: rec.name,
+      action,
+      category: rec.category,
+      estimated_cost: rec.estimated_cost,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to save interaction", variant: "destructive" });
+    } else {
+      setInteractions([...interactions, { recommendation_name: rec.name, action }]);
+      toast({
+        title: action === 'saved' ? "Saved!" : "Dismissed",
+        description: action === 'saved' ? `${rec.name} added to your saved list` : `${rec.name} won't be shown again`,
+      });
+    }
+    setSavingId(null);
+  };
+
+  const getInteractionStatus = (name: string) => {
+    return interactions.find(i => i.recommendation_name === name);
+  };
 
   const getRecommendations = async () => {
     setIsLoading(true);
@@ -155,43 +208,95 @@ export function AIRecommendations() {
 
         {recommendations.length > 0 && !isLoading && (
           <div className="grid gap-4 md:grid-cols-2">
-            {recommendations.map((rec, index) => (
-              <div
-                key={index}
-                className="group relative p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
-              >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold truncate group-hover:text-primary transition-colors">
-                        {rec.name}
-                      </h4>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs">
-                        {rec.category}
+            {recommendations.map((rec, index) => {
+              const status = getInteractionStatus(rec.name);
+              if (status) {
+                return (
+                  <div
+                      key={index}
+                    className={`relative p-4 rounded-xl border ${status.action === 'saved' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-muted/30 bg-muted/5 opacity-60'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {status.action === 'saved' ? (
+                          <Bookmark className="h-4 w-4 text-emerald-500 fill-emerald-500" />
+                        ) : (
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="font-medium">{rec.name}</span>
+                      </div>
+                      <Badge variant="outline" className={status.action === 'saved' ? 'text-emerald-500 border-emerald-500/30' : ''}>
+                        {status.action === 'saved' ? 'Saved' : 'Dismissed'}
                       </Badge>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs flex items-center gap-1 ${getRelevanceColor(rec.relevance)}`}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={index}
+                  className="group relative p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
+                >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold truncate group-hover:text-primary transition-colors">
+                            {rec.name}
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="secondary" className="text-xs">
+                            {rec.category}
+                          </Badge>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs flex items-center gap-1 ${getRelevanceColor(rec.relevance)}`}
+                          >
+                            {getRelevanceIcon(rec.relevance)}
+                            {rec.relevance} match
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-semibold text-primary">
+                          {rec.estimated_cost}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                      {rec.description}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
+                        onClick={() => handleInteraction(rec, 'saved')}
+                        disabled={savingId === rec.name}
                       >
-                        {getRelevanceIcon(rec.relevance)}
-                        {rec.relevance} match
-                      </Badge>
+                        {savingId === rec.name ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Bookmark className="h-3 w-3 mr-1" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => handleInteraction(rec, 'dismissed')}
+                        disabled={savingId === rec.name}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Dismiss
+                      </Button>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-sm font-semibold text-primary">
-                      {rec.estimated_cost}
-                    </span>
-                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {rec.description}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
