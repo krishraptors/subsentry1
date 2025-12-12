@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      recommendation_interactions: {
+        Row: {
+          action: string
+          category: string | null
+          created_at: string
+          estimated_cost: string | null
+          id: string
+          recommendation_name: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          category?: string | null
+          created_at?: string
+          estimated_cost?: string | null
+          id?: string
+          recommendation_name: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          category?: string | null
+          created_at?: string
+          estimated_cost?: string | null
+          id?: string
+          recommendation_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           billing_cycle: string
