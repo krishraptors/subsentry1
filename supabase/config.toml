@@ -2,3 +2,6 @@ project_id = "llhkvmeagwliqzryjayn"
 
 [functions.analyze-subscriptions]
 verify_jwt = true
+
+[functions.recommend-subscriptions]
+verify_jwt = true
